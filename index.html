@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Match AR! - GATE MISSION</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            font-family: 'Press Start 2P', 'Courier New', monospace;
+            background: #f0f7e6;
+            color: #2d4a22;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 柔和彩色背景 */
+        .cyber-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(145deg, #e8f5e9 0%, #fff9c4 50%, #e8f5e9 100%);
+            z-index: -2;
+        }
+
+        .energy-wave {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 40%, rgba(200, 230, 150, 0.3) 0%, rgba(255, 245, 180, 0.2) 70%);
+            animation: energyPulse 6s ease-in-out infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* 像素掃描線 */
+        .scan-line {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(0deg, rgba(120, 100, 60, 0.06) 0px, rgba(120, 100, 60, 0.06) 2px, transparent 2px, transparent 6px);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 15px;
+            padding-bottom: 60px;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 像素風格狀態欄 */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            background: rgba(255, 255, 245, 0.85);
+            border: 3px solid #8bae5a;
+            margin-bottom: 15px;
+            position: relative;
+            flex-shrink: 0;
+            box-shadow: 4px 4px 0 rgba(100, 80, 40, 0.15);
+        }
+        .status-bar::before {
+            content: 'GATE MISSION';
+            position: absolute;
+            top: -10px;
+            left: 12px;
+            background: #e8f5e9;
+            padding: 0 8px;
+            color: #6b8c42;
+            font-size: 8px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .energy-container {
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+        .energy-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            margin-bottom: 5px;
+            color: #7b9e4a;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .energy-bar-bg {
+            width: 100%;
+            height: 18px;
+            background: #e0e8d0;
+            border: 2px solid #8bae5a;
+        }
+        .energy-fill {
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(90deg, #a8d56f, #a8d56f 8px, #c5e0a4 8px, #c5e0a4 16px);
+            transition: width 0.1s step-end;
+        }
+
+        .location-header {
+            text-align: center;
+            padding: 12px;
+            background: rgba(200, 230, 170, 0.7);
+            border: 3px solid #8bae5a;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+            box-shadow: 3px 3px 0 rgba(100, 80, 40, 0.1);
+        }
+        .location-name {
+            font-size: 16px;
+            letter-spacing: 2px;
+            color: #5d8233;
+        }
+        .level-badge {
+            font-size: 9px;
+            color: #8bae5a;
+            margin-top: 6px;
+        }
+
+        .timer {
+            font-size: 32px;
+            font-weight: bold;
+            color: #5d8233;
+            text-align: center;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+            letter-spacing: 2px;
+            font-family: monospace;
+        }
+        .timer.warning {
+            color: #e8a842;
+        }
+
+        /* 像素卡片 */
+        .area-card {
+            background: rgba(255, 255, 245, 0.9);
+            border: 3px solid #b8d98c;
+            padding: 15px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+            box-shadow: 5px 5px 0 rgba(100, 80, 40, 0.1);
+        }
+        .section-title {
+            color: #7b9e4a;
+            margin-bottom: 12px;
+            font-size: 11px;
+            letter-spacing: 1px;
+            font-weight: bold;
+            border-left: 4px solid #b8d98c;
+            padding-left: 10px;
+        }
+        .image-container {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #faf8e8;
+            border: 3px solid #b8d98c;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #b8c98a;
+            background: #fffef5;
+            font-size: 9px;
+        }
+        .placeholder i { font-size: 28px; color: #c5e0a4; opacity: 0.8; }
+
+        /* 像素相似度計 */
+        .similarity-meter {
+            margin-top: 12px;
+            padding: 10px;
+            background: rgba(210, 235, 170, 0.5);
+            border: 2px solid #b8d98c;
+        }
+        .meter-label {
+            color: #7b9e4a;
+            margin-bottom: 6px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        .meter-bar {
+            width: 100%;
+            height: 10px;
+            background: #eef3e2;
+            border: 1px solid #b8d98c;
+        }
+        .meter-fill {
+            height: 100%;
+            transition: width 0.1s step-end;
+        }
+        .meter-fill.high { background: #7dbe3c; }
+        .meter-fill.medium { background: #c5d86b; }
+        .meter-fill.low { background: #e8bc6e; }
+
+        /* 像素按鈕 */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 11px;
+            border: 3px solid #8bae5a;
+            background: rgba(255, 255, 240, 0.9);
+            color: #5d8233;
+            cursor: pointer;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-family: 'Press Start 2P', monospace;
+            transition: all 0.05s linear;
+            margin-top: 10px;
+            box-shadow: 3px 3px 0 rgba(100, 80, 40, 0.2);
+        }
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0 rgba(100, 80, 40, 0.2);
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .btn-boss {
+            border-color: #f0b34b;
+            color: #d9882c;
+            background: rgba(255, 245, 200, 0.9);
+            animation: bossPulse 1s infinite;
+        }
+        .btn-boss:active { background: #f0b34b; color: white; }
+        
+        @keyframes bossPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(240, 180, 75, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(240, 180, 75, 0); }
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+        #video.visible { display: block; }
+
+        .photo-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .photo-actions .btn {
+            flex: 1;
+            margin-top: 0;
+        }
+
+        .back-button {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 100;
+        }
+        .back-button a {
+            color: #7b9e4a;
+            text-decoration: none;
+            border: 3px solid #8bae5a;
+            background: rgba(255, 255, 240, 0.9);
+            padding: 6px 12px;
+            font-size: 9px;
+            font-family: 'Press Start 2P', monospace;
+            box-shadow: 2px 2px 0 rgba(100, 80, 40, 0.2);
+        }
+        .back-button a:active {
+            transform: translate(1px, 1px);
+            box-shadow: 1px 1px 0 rgba(100, 80, 40, 0.2);
+        }
+
+        .bottom-buttons {
+            margin-top: 8px;
+            margin-bottom: 25px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fef7e0;
+            border: 3px solid #c5e0a4;
+            color: #5d8233;
+            padding: 10px 20px;
+            font-size: 10px;
+            z-index: 1000;
+            display: none;
+            text-align: center;
+            white-space: nowrap;
+            font-family: 'Press Start 2P', monospace;
+            box-shadow: 4px 4px 0 rgba(100, 80, 40, 0.2);
+        }
+        .toast.show { display: block; animation: fadeIn 0.2s steps(4); }
+
+        @keyframes energyPulse {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.02); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        .shake { animation: shake 0.2s steps(4); }
+        @keyframes shake {
+            0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)}
+        }
+
+        #cameraStatus.online { color: #6b9e2e; font-weight: bold; }
+        #cameraStatus.offline { color: #c97e3a; }
+    </style>
+</head>
+<body>
+    <div class="cyber-bg"></div>
+    <div class="energy-wave"></div>
+    <div class="scan-line"></div>
+
+    <div class="back-button"><a href="index.html">← EXIT</a></div>
+
+    <div class="game-container">
+        <div class="status-bar">
+            <div class="level-info">
+                <span id="currentLocation">GATE</span>
+            </div>
+            <div class="timer" id="timer">--</div>
+        </div>
+
+        <div class="energy-container">
+            <div class="energy-label"><span>⚡ NEGATIVE ENERGY</span><span id="energyPercent">100%</span></div>
+            <div class="energy-bar-bg"><div class="energy-fill" id="energyFill" style="width: 100%"></div></div>
+        </div>
+
+        <!-- 場地介紹卡片 -->
+        <div class="area-card" id="gateIntroCard">
+            <div class="section-title">📍 GATE AREA</div>
+            <div class="image-container">
+                <img id="gateImage" src="https://i.postimg.cc/3ktyF11d/IMG-9842.jpg" alt="GATE AREA">
+            </div>
+            <button class="btn" id="startMatchingBtn" onclick="startMatching()">▶ START MATCHING</button>
+        </div>
+
+        <!-- 遊戲主區域（初始隱藏） -->
+        <div id="gameMainArea" style="display: none;">
+            <div class="location-header" id="locationHeader">
+                <div class="location-name">🏛️ GATE AREA</div>
+                <div class="level-badge" id="levelInfo">LEVEL 1/2 | TIME: 5:00</div>
+            </div>
+
+            <div class="area-card" id="challengeArea">
+                <div class="section-title">🎯 TARGET PHOTO</div>
+                <div class="image-container" id="targetContainer">
+                    <img id="targetImg" src="" alt="TARGET" style="width:100%; height:100%; object-fit:cover; display:none;">
+                    <div class="placeholder" id="targetPlaceholder">
+                        <i>🖼️</i>
+                        <p>Waiting for target...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="similarity-meter" id="similarityMeter" style="display:none">
+                <div class="meter-label">MATCH RATE</div>
+                <div class="meter-bar"><div class="meter-fill" id="similarityFill" style="width:0%"></div></div>
+                <div id="similarityText" style="text-align:center; margin-top:6px; color:#8bae5a; font-size:9px">0%</div>
+            </div>
+
+            <div class="area-card" id="cameraArea">
+                <div class="section-title">📷 YOUR CAMERA</div>
+                <div class="image-container">
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="canvas" style="display:none"></canvas>
+                    <div class="placeholder" id="cameraPlaceholder"><i>📷</i><p>CAMERA OFFLINE</p></div>
+                </div>
+                <div class="photo-actions">
+                    <button class="btn" id="takePhotoBtn" onclick="takePhoto()" disabled>📸 CAPTURE</button>
+                    <button class="btn" id="submitBtn" onclick="submitMatch()" disabled>⬆ SUBMIT</button>
+                </div>
+                <div id="cameraStatus" style="text-align:center; margin-top:12px; font-size:9px">OFFLINE</div>
+            </div>
+
+            <div class="bottom-buttons" id="bottomButtons">
+                <button class="btn" id="nextLevelBtn" onclick="nextLevel()" style="display:none">⏭ NEXT LEVEL</button>
+                <button class="btn btn-boss" id="bossFightBtn" onclick="startBossFight()" style="display:none">⚔️ FIGHT WITH 遲兔 ⚔️</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // ========== 防止畫面縮放 ==========
+        document.addEventListener('touchmove', function(e) {
+            if (e.touches.length > 1) e.preventDefault();
+        }, { passive: false });
+        document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+        document.addEventListener('touchstart', function(e) {
+            if (e.touches.length > 1) e.preventDefault();
+        }, { passive: false });
+        
+        // ========== 遊戲設定 ==========
+        const LEVEL_IMAGES = [
+            "https://i.postimg.cc/ThffJG5g/IMG-9773.jpg",
+            "https://i.postimg.cc/3k4TxxVs/IMG-9775.jpg"
+        ];
+        const LEVEL_TIMES = [300, 240];
+        const MAX_REDUCTION_PER_LEVEL = 4;
+        
+        function getReductionBySimilarity(similarity) {
+            if (similarity >= 95) return 4.0;
+            if (similarity >= 90) return 3.5;
+            if (similarity >= 85) return 3.0;
+            if (similarity >= 80) return 2.5;
+            if (similarity >= 75) return 2.0;
+            if (similarity >= 70) return 1.5;
+            if (similarity >= 65) return 1.0;
+            if (similarity >= 60) return 0.5;
+            return 0;
+        }
+        
+        let gameState = {
+            currentLevel: 1,
+            energy: 100,
+            timer: 0,
+            timerInterval: null,
+            camera: null,
+            cameraActive: false,
+            currentPhoto: null,
+            currentSimilarity: 0,
+            isSubmitted: false,
+            levelCompleted: false,
+            gameActive: false
+        };
+        
+        // DOM 元素
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const targetImg = document.getElementById('targetImg');
+        const targetPlaceholder = document.getElementById('targetPlaceholder');
+        const similarityMeter = document.getElementById('similarityMeter');
+        const similarityFill = document.getElementById('similarityFill');
+        const similarityText = document.getElementById('similarityText');
+        const takePhotoBtn = document.getElementById('takePhotoBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        const nextLevelBtn = document.getElementById('nextLevelBtn');
+        const bossFightBtn = document.getElementById('bossFightBtn');
+        const timerDisplay = document.getElementById('timer');
+        const levelInfo = document.getElementById('levelInfo');
+        const energyFill = document.getElementById('energyFill');
+        const energyPercent = document.getElementById('energyPercent');
+        
+        const gateIntroCard = document.getElementById('gateIntroCard');
+        const gameMainArea = document.getElementById('gameMainArea');
+        
+        async function startMatching() {
+            gateIntroCard.style.display = 'none';
+            gameMainArea.style.display = 'block';
+            await initCamera();
+            startLevel();
+        }
+        
+        async function initCamera() {
+            try {
+                showToast("📷 REQUESTING CAMERA...");
+                const constraints = { video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'environment' } };
+                gameState.camera = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = gameState.camera;
+                await new Promise(resolve => { video.onloadedmetadata = () => { video.play(); resolve(); }; });
+                video.classList.add('visible');
+                const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+                if (cameraPlaceholder) cameraPlaceholder.style.display = 'none';
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                gameState.cameraActive = true;
+                const cameraStatus = document.getElementById('cameraStatus');
+                if (cameraStatus) {
+                    cameraStatus.textContent = 'ONLINE';
+                    cameraStatus.style.color = '#6b9e2e';
+                }
+                if (takePhotoBtn) takePhotoBtn.disabled = false;
+                showToast("✅ CAMERA READY");
+            } catch (error) {
+                showToast("❌ CAMERA ACCESS DENIED", "error");
+                const cameraStatus = document.getElementById('cameraStatus');
+                if (cameraStatus) cameraStatus.textContent = 'OFFLINE';
+            }
+        }
+        
+        function startLevel() {
+            const levelIdx = gameState.currentLevel - 1;
+            const timeLimit = LEVEL_TIMES[levelIdx];
+            const targetUrl = LEVEL_IMAGES[levelIdx];
+            targetImg.src = targetUrl;
+            targetImg.style.display = 'block';
+            targetPlaceholder.style.display = 'none';
+            levelInfo.innerHTML = `LEVEL ${gameState.currentLevel}/2 | TIME: ${Math.floor(timeLimit/60)}:${(timeLimit%60).toString().padStart(2,'0')}`;
+            gameState.isSubmitted = false;
+            gameState.levelCompleted = false;
+            gameState.currentPhoto = null;
+            gameState.currentSimilarity = 0;
+            similarityMeter.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.style.display = 'block';
+            nextLevelBtn.style.display = 'none';
+            bossFightBtn.style.display = 'none';
+            takePhotoBtn.disabled = false;
+            takePhotoBtn.textContent = "📸 CAPTURE";
+            startTimer(timeLimit);
+        }
+        
+        function startTimer(seconds) {
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+            gameState.timer = seconds;
+            updateTimerDisplay();
+            gameState.timerInterval = setInterval(() => {
+                if (gameState.timer <= 0) {
+                    clearInterval(gameState.timerInterval);
+                    if (!gameState.isSubmitted && !gameState.levelCompleted) handleTimeout();
+                } else {
+                    gameState.timer--;
+                    updateTimerDisplay();
+                }
+            }, 1000);
+        }
+        
+        function updateTimerDisplay() {
+            const mins = Math.floor(gameState.timer / 60);
+            const secs = gameState.timer % 60;
+            timerDisplay.textContent = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+            if (gameState.timer <= 10) timerDisplay.classList.add('warning');
+            else timerDisplay.classList.remove('warning');
+        }
+        
+        function handleTimeout() {
+            showToast("⏰ TIME'S UP! LEVEL FAILED", "error");
+            gameState.levelCompleted = true;
+            takePhotoBtn.disabled = true;
+            submitBtn.disabled = true;
+            nextLevelBtn.style.display = 'block';
+            nextLevelBtn.textContent = "🔄 RETRY LEVEL";
+        }
+        
+        function takePhoto() {
+            if (!gameState.cameraActive) { showToast("CAMERA OFFLINE", "error"); return; }
+            if (gameState.isSubmitted) { showToast("LEVEL ALREADY COMPLETED", "warning"); return; }
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            gameState.currentPhoto = canvas.toDataURL('image/jpeg', 0.95);
+            takePhotoBtn.textContent = "📸 RETRY";
+            showToast("📸 PHOTO TAKEN! CALCULATING...");
+            calculateSimilarity();
+        }
+        
+        function calculateSimilarity() {
+            if (gameState.isSubmitted) return;
+            const baseSimilarity = 40 + Math.random() * 50;
+            const attemptBonus = Math.min(15, Math.floor(Math.random() * 20));
+            let similarity = Math.min(98, baseSimilarity + attemptBonus);
+            similarity = Math.floor(similarity);
+            gameState.currentSimilarity = similarity;
+            displaySimilarity(similarity);
+            submitBtn.disabled = false;
+            if (similarity >= 90) showToast(`✅ EXCELLENT! ${similarity}%`);
+            else if (similarity >= 70) showToast(`👍 GOOD! ${similarity}%`);
+            else if (similarity >= 50) showToast(`📸 ${similarity}% - LOW REDUCTION`);
+            else showToast(`⚠️ ${similarity}% - POOR MATCH`);
+        }
+        
+        function displaySimilarity(percent) {
+            similarityMeter.style.display = 'block';
+            similarityFill.style.width = percent + '%';
+            similarityText.textContent = percent + '%';
+            if (percent >= 80) similarityFill.className = 'meter-fill high';
+            else if (percent >= 50) similarityFill.className = 'meter-fill medium';
+            else similarityFill.className = 'meter-fill low';
+        }
+        
+        function submitMatch() {
+            if (gameState.isSubmitted) return;
+            let reduction = getReductionBySimilarity(gameState.currentSimilarity);
+            const timeBonus = Math.min(1.5, Math.floor(gameState.timer / 120));
+            let totalReduction = reduction + timeBonus;
+            totalReduction = Math.min(MAX_REDUCTION_PER_LEVEL, totalReduction);
+            totalReduction = Math.min(gameState.energy, totalReduction);
+            gameState.energy = Math.max(0, gameState.energy - totalReduction);
+            updateEnergyBar();
+            let gradeText = "";
+            if (gameState.currentSimilarity >= 90) gradeText = "✨ PERFECT! ✨";
+            else if (gameState.currentSimilarity >= 70) gradeText = "🌟 GOOD! 🌟";
+            else if (gameState.currentSimilarity >= 50) gradeText = "✓ ACCEPTABLE";
+            else gradeText = "⚠️ POOR";
+            if (totalReduction > 0) showToast(`${gradeText} | -${totalReduction.toFixed(1)}% ENERGY`);
+            else showToast(`${gradeText} | NO ENERGY REDUCED`);
+            gameState.isSubmitted = true;
+            gameState.levelCompleted = true;
+            takePhotoBtn.disabled = true;
+            submitBtn.disabled = true;
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+            if (gameState.currentLevel === 2) {
+                nextLevelBtn.style.display = 'none';
+                bossFightBtn.style.display = 'block';
+                showToast("🏆 GATE CLEARED! BOSS UNLOCKED!");
+            } else {
+                nextLevelBtn.style.display = 'block';
+                nextLevelBtn.textContent = "⏭ NEXT";
+            }
+        }
+        
+        function updateEnergyBar() {
+            energyFill.style.width = gameState.energy + '%';
+            energyPercent.textContent = Math.floor(gameState.energy) + '%';
+            if (gameState.energy <= 30) energyFill.style.background = "repeating-linear-gradient(90deg, #e8bc6e, #e8bc6e 8px, #f0c48a 8px, #f0c48a 16px)";
+            if (gameState.energy <= 10) energyFill.style.background = "#f0a46e";
+        }
+        
+        function nextLevel() {
+            if (gameState.currentLevel < 2) {
+                gameState.currentLevel++;
+                gameState.isSubmitted = false;
+                gameState.levelCompleted = false;
+                gameState.currentPhoto = null;
+                gameState.currentSimilarity = 0;
+                similarityMeter.style.display = 'none';
+                submitBtn.disabled = true;
+                nextLevelBtn.style.display = 'none';
+                bossFightBtn.style.display = 'none';
+                takePhotoBtn.disabled = false;
+                takePhotoBtn.textContent = "📸 CAPTURE";
+                startLevel();
+            }
+        }
+        
+        // ========== BOSS 戰鬥 ==========
+        function startBossFight() {
+            showToast("⚔️ FIGHT WITH 遲兔 - INITIATING BATTLE... ⚔️");
+            const elementsToHide = ['.status-bar', '.energy-container', '#gameMainArea', '#gateIntroCard'];
+            elementsToHide.forEach(selector => { const el = document.querySelector(selector); if (el) el.style.display = 'none'; });
+            loadBossFightGame();
+        }
+        
+        function loadBossFightGame() {
+            const bossHTML = `
+                <div id="bossFightContainer" style="width:100%; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; background:linear-gradient(145deg, #e8f5e9, #fff9c4);">
+                    <!-- 標題區域 - 置中，無 emoji -->
+                    <div style="text-align:center; width:100%; margin-bottom:20px;">
+                        <h1 style="font-size:1.5rem; color:#d9882c; font-family:'Press Start 2P',monospace; text-align:center; margin:0;">POWER CLASH</h1>
+                        <h2 style="font-size:1rem; color:#b87a2a; text-align:center; margin:15px 0 10px 0;">VS 遲兔</h2>
+                        <div id="bossTimer" style="font-family:monospace; font-size:1.2rem; color:#8bae5a; text-align:center; margin:5px 0;">00:00.00</div>
+                    </div>
+                    
+                    <!-- 戰鬥條區域 -->
+                    <div style="width:90%; max-width:350px; margin:0 auto;">
+                        <div style="display:flex; justify-content:space-between; font-family:'Press Start 2P',monospace; font-size:0.55rem; margin-bottom:5px;">
+                            <span style="color:#d97a2a">遲兔 [BOSS]</span>
+                            <span style="color:#6b9e2e">YOU</span>
+                        </div>
+                        <div style="width:100%; height:30px; background:#1a120a; border:3px solid #8b6946; position:relative;">
+                            <div id="compFill" style="position:absolute; left:0; height:100%; background:#e9c46a; width:50%; transition:width 0.04s linear;"></div>
+                            <div id="plyFill" style="position:absolute; right:0; height:100%; background:#6a994e; width:50%; transition:width 0.04s linear;"></div>
+                            <div id="clashSpark" style="position:absolute; top:0; bottom:0; width:4px; background:#fff; box-shadow:0 0 8px 2px #fff; transform:translateX(-50%); left:50%; transition:left 0.04s linear;"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="bossMsg" style="font-size:0.8rem; height:50px; text-align:center; margin:15px 0;"></div>
+                    
+                    <!-- 按鈕區域 - STRIKE 置中 -->
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; margin-top:10px;">
+                        <div id="tapZone" style="width:110px; height:110px; background:radial-gradient(circle, #f0cc88, #e8a642); display:flex; align-items:center; justify-content:center; font-size:0.9rem; border:4px solid #8bae5a; cursor:pointer; margin:0 auto;">STRIKE</div>
+                        <button id="bossRestartBtn" style="padding:8px 16px; background:#fef7e0; color:#7b9e4a; border:3px solid #8bae5a; font-family:'Press Start 2P',monospace; font-size:0.55rem; cursor:pointer;">RESTART</button>
+                        <button id="bossExitBtn" style="padding:8px 16px; background:#fef7e0; color:#d9882c; border:3px solid #8bae5a; font-family:'Press Start 2P',monospace; font-size:0.55rem; cursor:pointer;">EXIT</button>
+                    </div>
+                </div>
+            `;
+            const container = document.querySelector('.game-container');
+            container.innerHTML = bossHTML;
+            initBossFight();
+        }
+        
+        function initBossFight() {
+            let pos = 50;
+            let active = true;
+            let cpuTimer, clockTimer, startTime, elapsedTime = 0;
+            const plyPower = 3.5;
+            const cpuPower = 4.2;
+            const cpuInterval = 120;
+            const compFill = document.getElementById('compFill');
+            const plyFill = document.getElementById('plyFill');
+            const spark = document.getElementById('clashSpark');
+            const timerDisplay = document.getElementById('bossTimer');
+            const msgArea = document.getElementById('bossMsg');
+            const tapZone = document.getElementById('tapZone');
+            
+            function formatTime(ms) { let totalSeconds = ms / 1000; let m = Math.floor(totalSeconds / 60); let s = Math.floor(totalSeconds % 60); let h = Math.floor((ms % 1000) / 10); return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}.${h.toString().padStart(2,'0')}`; }
+            function updateClock() { if (!active) return; elapsedTime = Date.now() - startTime; timerDisplay.innerText = formatTime(elapsedTime); clockTimer = requestAnimationFrame(updateClock); }
+            function updateUI() { if(spark) spark.style.left = pos + "%"; if(compFill) compFill.style.width = pos + "%"; if(plyFill) plyFill.style.width = (100 - pos) + "%"; if(pos <= 0) endGame("WIN"); if(pos >= 100) endGame("LOSE"); }
+            function tapHandler(e) { e.preventDefault(); if (!active) return; if(navigator.vibrate) navigator.vibrate(20); pos -= plyPower; if(pos < 0) pos = 0; updateUI(); }
+            function cpuCycle() { if (!active) return; pos += cpuPower; if(pos > 100) pos = 100; updateUI(); cpuTimer = setTimeout(cpuCycle, cpuInterval); }
+            function endGame(res) { active = false; clearTimeout(cpuTimer); cancelAnimationFrame(clockTimer); if(res === "WIN") msgArea.innerHTML = `<span style="color:#6b9e2e">VICTORY!</span><div style="font-size:0.55rem;">Time: ${formatTime(elapsedTime)}</div>`; else msgArea.innerHTML = `<span style="color:#d97a2a">DEFEATED</span><div style="font-size:0.55rem;">Survived: ${formatTime(elapsedTime)}</div>`; }
+            function resetBattle() { pos = 50; active = true; elapsedTime = 0; timerDisplay.innerText = "00:00.00"; msgArea.innerHTML = ""; updateUI(); startTime = Date.now(); updateClock(); clearTimeout(cpuTimer); setTimeout(cpuCycle, 800); }
+            function exitBattle() { window.location.href = 'gate.html'; }
+            
+            if(tapZone) tapZone.addEventListener('pointerdown', tapHandler);
+            const restartBtn = document.getElementById('bossRestartBtn');
+            const exitBtn = document.getElementById('bossExitBtn');
+            if(restartBtn) restartBtn.addEventListener('click', resetBattle);
+            if(exitBtn) exitBtn.addEventListener('click', exitBattle);
+            
+            const bossContainer = document.getElementById('bossFightContainer');
+            if(bossContainer) {
+                bossContainer.addEventListener('touchmove', function(e) { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+                bossContainer.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+            }
+            
+            resetBattle();
+            msgArea.innerHTML = "<div style='font-size:0.7rem; color:#e8a642'>TAP TO STRIKE!</div>";
+        }
+        
+        function showToast(msg, type = "info") {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast show';
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+        
+        window.addEventListener('beforeunload', () => {
+            if (gameState.camera) gameState.camera.getTracks().forEach(t => t.stop());
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+        });
+    </script>
+</body>
+</html>
