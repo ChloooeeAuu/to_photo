@@ -412,12 +412,11 @@
             transform: translate(2px, 2px);
         }
         
-        /* 遲兔角色圖片 - 放大版 */
         .rpg-character {
             position: fixed;
             bottom: 180px;
             left: 5%;
-            width: 300px;
+            width: 150px;
             height: auto;
             z-index: 199;
             image-rendering: pixelated;
@@ -562,9 +561,9 @@
         // 對話資料
         let dialogueIndex = 0;
         const dialogues = [
-            { speaker: "遲兔", text: "You catched me…! Successfully!" },
-            { speaker: "遲兔", text: "It hasn't the end yet……I still cannot help myself to catch the time right……" },
-            { speaker: "遲兔", text: "Help me to catch the watch so that I will not late again!" }
+            { speaker: "遲兔", text: "You catched me…! Successfully!", active: "chitu" },
+            { speaker: "遲兔", text: "It hasn't the end yet……I still cannot help myself to catch the time right……", active: "chitu" },
+            { speaker: "遲兔", text: "Help me to catch the watch so that I will not late again!", active: "chitu" }
         ];
         
         // DOM 元素
@@ -838,6 +837,8 @@
         }
         
         // ========== BOSS 戰鬥 ==========
+        let bossVictory = false;
+        
         function startBossFight() {
             showToast("⚔️ FIGHT WITH 遲兔 - INITIATING BATTLE... ⚔️");
             
@@ -904,11 +905,50 @@
             
             function formatTime(ms) { let totalSeconds = ms / 1000; let m = Math.floor(totalSeconds / 60); let s = Math.floor(totalSeconds % 60); let h = Math.floor((ms % 1000) / 10); return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}.${h.toString().padStart(2,'0')}`; }
             function updateClock() { if (!active) return; elapsedTime = Date.now() - startTime; timerDisplay.innerText = formatTime(elapsedTime); clockTimer = requestAnimationFrame(updateClock); }
-            function updateUI() { if(spark) spark.style.left = pos + "%"; if(compFill) compFill.style.width = pos + "%"; if(plyFill) plyFill.style.width = (100 - pos) + "%"; if(pos <= 0) endGame("WIN"); if(pos >= 100) endGame("LOSE"); }
+            function updateUI() { if(spark) spark.style.left = pos + "%"; if(compFill) compFill.style.width = pos + "%"; if(plyFill) plyFill.style.width = (100 - pos) + "%"; if(pos <= 0) { if(!bossVictory) endGame("WIN"); } if(pos >= 100) endGame("LOSE"); }
             function tapHandler(e) { e.preventDefault(); if (!active) return; if(navigator.vibrate) navigator.vibrate(20); pos -= plyPower; if(pos < 0) pos = 0; updateUI(); }
             function cpuCycle() { if (!active) return; pos += cpuPower; if(pos > 100) pos = 100; updateUI(); cpuTimer = setTimeout(cpuCycle, cpuInterval); }
-            function endGame(res) { active = false; clearTimeout(cpuTimer); cancelAnimationFrame(clockTimer); if(res === "WIN") msgArea.innerHTML = `<span style="color:#6b9e2e">VICTORY!</span><div style="font-size:0.55rem;">Time: ${formatTime(elapsedTime)}</div>`; else msgArea.innerHTML = `<span style="color:#d97a2a">DEFEATED</span><div style="font-size:0.55rem;">Survived: ${formatTime(elapsedTime)}</div>`; }
-            function resetBattle() { pos = 50; active = true; elapsedTime = 0; timerDisplay.innerText = "00:00.00"; msgArea.innerHTML = ""; updateUI(); startTime = Date.now(); updateClock(); clearTimeout(cpuTimer); setTimeout(cpuCycle, 800); }
+            function endGame(res) { 
+                active = false; 
+                clearTimeout(cpuTimer); 
+                cancelAnimationFrame(clockTimer); 
+                if(res === "WIN") {
+                    bossVictory = true;
+                    msgArea.innerHTML = `<span style="color:#6b9e2e">VICTORY!</span><div style="font-size:0.55rem;">Time: ${formatTime(elapsedTime)}</div>`;
+                    // 顯示 NEXT 按鈕
+                    showNextButton();
+                } else {
+                    msgArea.innerHTML = `<span style="color:#d97a2a">DEFEATED</span><div style="font-size:0.55rem;">Survived: ${formatTime(elapsedTime)}</div>`;
+                }
+            }
+            
+            function showNextButton() {
+                const buttonHTML = `<button id="nextPageBtn" style="padding:12px 24px; background:#a8d56f; border:3px solid #4a5d23; color:#2d4a22; font-family:'Press Start 2P',monospace; font-size:0.8rem; cursor:pointer; margin-top:20px;">NEXT →</button>`;
+                const container = document.getElementById('bossFightContainer');
+                if (container) {
+                    container.insertAdjacentHTML('beforeend', buttonHTML);
+                    const nextBtn = document.getElementById('nextPageBtn');
+                    if (nextBtn) {
+                        nextBtn.addEventListener('click', function() {
+                            window.location.href = 'tran.html';
+                        });
+                    }
+                }
+            }
+            
+            function resetBattle() { 
+                pos = 50; 
+                active = true; 
+                bossVictory = false;
+                elapsedTime = 0; 
+                timerDisplay.innerText = "00:00.00"; 
+                msgArea.innerHTML = ""; 
+                updateUI(); 
+                startTime = Date.now(); 
+                updateClock(); 
+                clearTimeout(cpuTimer); 
+                setTimeout(cpuCycle, 800); 
+            }
             function exitBattle() { window.location.href = 'gate.html'; }
             
             if(tapZone) tapZone.addEventListener('pointerdown', tapHandler);
