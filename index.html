@@ -336,6 +336,93 @@
         }
         .toast.show { display: block; animation: fadeIn 0.2s steps(4); }
 
+        /* RPG 對話框樣式 */
+        .rpg-dialogue-container {
+            position: fixed;
+            bottom: 30px;
+            left: 5%;
+            width: 90%;
+            min-height: 160px;
+            background: rgba(255, 254, 240, 0.98);
+            border: 4px solid #4a5d23;
+            box-shadow: 0 4px 0 -1px #4a5d23, 0 -4px 0 -1px #4a5d23, 4px 0 0 -1px #4a5d23, -4px 0 0 -1px #4a5d23;
+            padding: 15px;
+            z-index: 200;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .rpg-name-tag {
+            font-size: 14px;
+            color: white;
+            background: #a8d56f;
+            padding: 4px 12px;
+            border: 2px solid #4a5d23;
+            position: absolute;
+            top: -18px;
+            left: 15px;
+            font-family: 'Press Start 2P', monospace;
+        }
+        
+        .rpg-message {
+            font-size: 13px;
+            color: #2d4a22;
+            line-height: 1.6;
+            margin-top: 15px;
+            margin-bottom: 20px;
+            font-family: 'Press Start 2P', monospace;
+            word-break: break-word;
+            flex: 1;
+        }
+        
+        .rpg-next-btn {
+            position: absolute;
+            right: 15px;
+            bottom: 10px;
+            background: #a8d56f;
+            border: 2px solid #4a5d23;
+            color: #2d4a22;
+            font-size: 14px;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-family: 'Press Start 2P', monospace;
+            transition: all 0.05s linear;
+        }
+        
+        .rpg-next-btn:active {
+            transform: translate(2px, 2px);
+        }
+        
+        .rpg-fight-btn {
+            background: #f0b34b;
+            border: 3px solid #4a5d23;
+            color: #2d4a22;
+            font-size: 11px;
+            padding: 10px;
+            cursor: pointer;
+            font-family: 'Press Start 2P', monospace;
+            transition: all 0.05s linear;
+            width: 100%;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .rpg-fight-btn:active {
+            transform: translate(2px, 2px);
+        }
+        
+        /* 遲兔角色圖片 - 放大版 */
+        .rpg-character {
+            position: fixed;
+            bottom: 180px;
+            left: 5%;
+            width: 150px;
+            height: auto;
+            z-index: 199;
+            image-rendering: pixelated;
+        }
+
         @keyframes energyPulse {
             0%, 100% { opacity: 0.4; transform: scale(1); }
             50% { opacity: 0.8; transform: scale(1.02); }
@@ -422,7 +509,6 @@
 
             <div class="bottom-buttons" id="bottomButtons">
                 <button class="btn" id="nextLevelBtn" onclick="nextLevel()" style="display:none">⏭ NEXT LEVEL</button>
-                <button class="btn btn-boss" id="bossFightBtn" onclick="startBossFight()" style="display:none">⚔️ FIGHT WITH 遲兔 ⚔️</button>
             </div>
         </div>
     </div>
@@ -473,6 +559,14 @@
             gameActive: false
         };
         
+        // 對話資料
+        let dialogueIndex = 0;
+        const dialogues = [
+            { speaker: "遲兔", text: "You catched me…! Successfully!" },
+            { speaker: "遲兔", text: "It hasn't the end yet……I still cannot help myself to catch the time right……" },
+            { speaker: "遲兔", text: "Help me to catch the watch so that I will not late again!" }
+        ];
+        
         // DOM 元素
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
@@ -484,7 +578,6 @@
         const takePhotoBtn = document.getElementById('takePhotoBtn');
         const submitBtn = document.getElementById('submitBtn');
         const nextLevelBtn = document.getElementById('nextLevelBtn');
-        const bossFightBtn = document.getElementById('bossFightBtn');
         const timerDisplay = document.getElementById('timer');
         const levelInfo = document.getElementById('levelInfo');
         const energyFill = document.getElementById('energyFill');
@@ -492,6 +585,82 @@
         
         const gateIntroCard = document.getElementById('gateIntroCard');
         const gameMainArea = document.getElementById('gameMainArea');
+        
+        // 顯示 RPG 對話框（三句對話流程）
+        function showRPGDialogue() {
+            dialogueIndex = 0;
+            
+            // 隱藏遊戲主區域和狀態欄
+            const statusBar = document.querySelector('.status-bar');
+            const energyContainer = document.querySelector('.energy-container');
+            const locationHeader = document.getElementById('locationHeader');
+            const challengeArea = document.getElementById('challengeArea');
+            const cameraArea = document.getElementById('cameraArea');
+            const bottomButtonsDiv = document.getElementById('bottomButtons');
+            
+            if (statusBar) statusBar.style.display = 'none';
+            if (energyContainer) energyContainer.style.display = 'none';
+            if (locationHeader) locationHeader.style.display = 'none';
+            if (challengeArea) challengeArea.style.display = 'none';
+            if (cameraArea) cameraArea.style.display = 'none';
+            if (bottomButtonsDiv) bottomButtonsDiv.style.display = 'none';
+            
+            // 創建對話框元素
+            createDialogueBox();
+        }
+        
+        function createDialogueBox() {
+            const currentDialogue = dialogues[dialogueIndex];
+            const isLastDialogue = (dialogueIndex === dialogues.length - 1);
+            
+            // 決定按鈕內容
+            const buttonHTML = isLastDialogue 
+                ? '<button class="rpg-fight-btn" id="dialogueFightBtn">⚔️ FIGHT WITH 遲兔 ⚔️</button>'
+                : '<button class="rpg-next-btn" id="dialogueNextBtn">→</button>';
+            
+            const dialogueHTML = `
+                <div id="rpgDialogueContainer" class="rpg-dialogue-container">
+                    <div class="rpg-name-tag" id="rpgSpeakerName">${currentDialogue.speaker}</div>
+                    <div class="rpg-message" id="rpgMessage">${currentDialogue.text}</div>
+                    ${buttonHTML}
+                </div>
+                <img id="rpgCharacter" class="rpg-character" src="chi-tu.png" alt="遲兔">
+            `;
+            
+            const container = document.querySelector('.game-container');
+            container.insertAdjacentHTML('beforeend', dialogueHTML);
+            
+            if (isLastDialogue) {
+                const fightBtn = document.getElementById('dialogueFightBtn');
+                if (fightBtn) {
+                    fightBtn.addEventListener('click', function() {
+                        // 移除對話框和角色圖片
+                        const dialogueContainer = document.getElementById('rpgDialogueContainer');
+                        const characterImg = document.getElementById('rpgCharacter');
+                        if (dialogueContainer) dialogueContainer.remove();
+                        if (characterImg) characterImg.remove();
+                        
+                        // 開始 BOSS 戰鬥
+                        startBossFight();
+                    });
+                }
+            } else {
+                const nextBtn = document.getElementById('dialogueNextBtn');
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', function() {
+                        // 移除當前對話框
+                        const dialogueContainer = document.getElementById('rpgDialogueContainer');
+                        const characterImg = document.getElementById('rpgCharacter');
+                        if (dialogueContainer) dialogueContainer.remove();
+                        if (characterImg) characterImg.remove();
+                        
+                        // 下一句對話
+                        dialogueIndex++;
+                        createDialogueBox();
+                    });
+                }
+            }
+        }
         
         async function startMatching() {
             gateIntroCard.style.display = 'none';
@@ -543,7 +712,6 @@
             submitBtn.disabled = true;
             submitBtn.style.display = 'block';
             nextLevelBtn.style.display = 'none';
-            bossFightBtn.style.display = 'none';
             takePhotoBtn.disabled = false;
             takePhotoBtn.textContent = "📸 CAPTURE";
             startTimer(timeLimit);
@@ -638,9 +806,8 @@
             submitBtn.disabled = true;
             if (gameState.timerInterval) clearInterval(gameState.timerInterval);
             if (gameState.currentLevel === 2) {
-                nextLevelBtn.style.display = 'none';
-                bossFightBtn.style.display = 'block';
-                showToast("🏆 GATE CLEARED! BOSS UNLOCKED!");
+                // 完成所有關卡，顯示對話框
+                showRPGDialogue();
             } else {
                 nextLevelBtn.style.display = 'block';
                 nextLevelBtn.textContent = "⏭ NEXT";
@@ -664,7 +831,6 @@
                 similarityMeter.style.display = 'none';
                 submitBtn.disabled = true;
                 nextLevelBtn.style.display = 'none';
-                bossFightBtn.style.display = 'none';
                 takePhotoBtn.disabled = false;
                 takePhotoBtn.textContent = "📸 CAPTURE";
                 startLevel();
@@ -674,22 +840,28 @@
         // ========== BOSS 戰鬥 ==========
         function startBossFight() {
             showToast("⚔️ FIGHT WITH 遲兔 - INITIATING BATTLE... ⚔️");
+            
             const elementsToHide = ['.status-bar', '.energy-container', '#gameMainArea', '#gateIntroCard'];
             elementsToHide.forEach(selector => { const el = document.querySelector(selector); if (el) el.style.display = 'none'; });
+            
+            // 確保對話框和角色圖片也被移除
+            const dialogueContainer = document.getElementById('rpgDialogueContainer');
+            const characterImg = document.getElementById('rpgCharacter');
+            if (dialogueContainer) dialogueContainer.remove();
+            if (characterImg) characterImg.remove();
+            
             loadBossFightGame();
         }
         
         function loadBossFightGame() {
             const bossHTML = `
                 <div id="bossFightContainer" style="width:100%; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; background:linear-gradient(145deg, #e8f5e9, #fff9c4);">
-                    <!-- 標題區域 - 置中，無 emoji -->
                     <div style="text-align:center; width:100%; margin-bottom:20px;">
                         <h1 style="font-size:1.5rem; color:#d9882c; font-family:'Press Start 2P',monospace; text-align:center; margin:0;">POWER CLASH</h1>
                         <h2 style="font-size:1rem; color:#b87a2a; text-align:center; margin:15px 0 10px 0;">VS 遲兔</h2>
                         <div id="bossTimer" style="font-family:monospace; font-size:1.2rem; color:#8bae5a; text-align:center; margin:5px 0;">00:00.00</div>
                     </div>
                     
-                    <!-- 戰鬥條區域 -->
                     <div style="width:90%; max-width:350px; margin:0 auto;">
                         <div style="display:flex; justify-content:space-between; font-family:'Press Start 2P',monospace; font-size:0.55rem; margin-bottom:5px;">
                             <span style="color:#d97a2a">遲兔 [BOSS]</span>
@@ -704,7 +876,6 @@
                     
                     <div id="bossMsg" style="font-size:0.8rem; height:50px; text-align:center; margin:15px 0;"></div>
                     
-                    <!-- 按鈕區域 - STRIKE 置中 -->
                     <div style="display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; margin-top:10px;">
                         <div id="tapZone" style="width:110px; height:110px; background:radial-gradient(circle, #f0cc88, #e8a642); display:flex; align-items:center; justify-content:center; font-size:0.9rem; border:4px solid #8bae5a; cursor:pointer; margin:0 auto;">STRIKE</div>
                         <button id="bossRestartBtn" style="padding:8px 16px; background:#fef7e0; color:#7b9e4a; border:3px solid #8bae5a; font-family:'Press Start 2P',monospace; font-size:0.55rem; cursor:pointer;">RESTART</button>
