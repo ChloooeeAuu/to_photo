@@ -25,6 +25,7 @@
             background: #f0f7e6;
             color: #2d4a22;
             -webkit-tap-highlight-color: transparent;
+            touch-action: pan-x pan-y; /* 允許滾動但禁止縮放 */
         }
 
         /* 柔和彩色背景 */
@@ -74,6 +75,7 @@
             display: flex;
             flex-direction: column;
             -webkit-overflow-scrolling: touch;
+            touch-action: pan-y; /* 只允許垂直滾動，禁止縮放 */
         }
 
         /* 像素風格狀態欄 */
@@ -249,6 +251,7 @@
             transition: all 0.05s linear;
             margin-top: 10px;
             box-shadow: 3px 3px 0 rgba(100, 80, 40, 0.2);
+            touch-action: manipulation;
         }
         .btn:active {
             transform: translate(2px, 2px);
@@ -302,6 +305,7 @@
             font-size: 9px;
             font-family: 'Press Start 2P', monospace;
             box-shadow: 2px 2px 0 rgba(100, 80, 40, 0.2);
+            touch-action: manipulation;
         }
         .back-button a:active {
             transform: translate(1px, 1px);
@@ -333,6 +337,7 @@
             white-space: nowrap;
             font-family: 'Press Start 2P', monospace;
             box-shadow: 4px 4px 0 rgba(100, 80, 40, 0.2);
+            touch-action: none;
         }
         .toast.show { display: block; animation: fadeIn 0.2s steps(4); }
 
@@ -351,6 +356,7 @@
             border-radius: 0;
             display: flex;
             flex-direction: column;
+            touch-action: manipulation;
         }
         
         .rpg-name-tag {
@@ -388,6 +394,7 @@
             cursor: pointer;
             font-family: 'Press Start 2P', monospace;
             transition: all 0.05s linear;
+            touch-action: manipulation;
         }
         
         .rpg-next-btn:active {
@@ -406,6 +413,7 @@
             width: 100%;
             text-align: center;
             margin-top: 10px;
+            touch-action: manipulation;
         }
         
         .rpg-fight-btn:active {
@@ -423,6 +431,22 @@
             z-index: 199;
             image-rendering: pixelated;
             pointer-events: none;
+        }
+
+        /* BOSS 戰鬥容器防止縮放 */
+        #bossFightContainer {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* BOSS 戰鬥中的所有按鈕和點擊區域 */
+        #bossFightContainer button,
+        #bossFightContainer .btn,
+        #bossFightContainer #tapZone,
+        #bossFightContainer #bossRestartBtn,
+        #bossFightContainer #bossExitBtn,
+        #bossFightContainer #nextPageBtn {
+            touch-action: manipulation;
         }
 
         @keyframes energyPulse {
@@ -520,12 +544,35 @@
     <script>
         // ========== 防止畫面縮放 ==========
         document.addEventListener('touchmove', function(e) {
-            if (e.touches.length > 1) e.preventDefault();
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
         }, { passive: false });
-        document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+        
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
+        });
+        
         document.addEventListener('touchstart', function(e) {
-            if (e.touches.length > 1) e.preventDefault();
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
         }, { passive: false });
+        
+        // 針對 BOSS 戰鬥區域的防止縮放
+        function preventZoomOnBossContainer() {
+            const bossContainer = document.getElementById('bossFightContainer');
+            if (bossContainer) {
+                bossContainer.addEventListener('touchmove', function(e) {
+                    if (e.touches.length > 1) {
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+                bossContainer.addEventListener('gesturestart', function(e) {
+                    e.preventDefault();
+                });
+            }
+        }
         
         // ========== 遊戲設定 ==========
         const LEVEL_IMAGES = [
@@ -859,7 +906,7 @@
         
         function loadBossFightGame() {
             const bossHTML = `
-                <div id="bossFightContainer" style="width:100%; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; background:linear-gradient(145deg, #e8f5e9, #fff9c4);">
+                <div id="bossFightContainer" style="width:100%; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; background:linear-gradient(145deg, #e8f5e9, #fff9c4); touch-action:manipulation;">
                     <div style="text-align:center; width:100%; margin-bottom:20px;">
                         <h1 style="font-size:1.5rem; color:#d9882c; font-family:'Press Start 2P',monospace; text-align:center; margin:0;">POWER CLASH</h1>
                         <h2 style="font-size:1rem; color:#b87a2a; text-align:center; margin:15px 0 10px 0;">VS 遲兔</h2>
@@ -871,7 +918,7 @@
                             <span style="color:#d97a2a">遲兔 [BOSS]</span>
                             <span style="color:#6b9e2e">YOU</span>
                         </div>
-                        <div style="width:100%; height:30px; background:#1a120a; border:3px solid #8b6946; position:relative;">
+                        <div style="width:100%; height:30px; background:#1a120a; border:3px solid #8b6946; position:relative; touch-action:manipulation;">
                             <div id="compFill" style="position:absolute; left:0; height:100%; background:#e9c46a; width:50%; transition:width 0.04s linear;"></div>
                             <div id="plyFill" style="position:absolute; right:0; height:100%; background:#6a994e; width:50%; transition:width 0.04s linear;"></div>
                             <div id="clashSpark" style="position:absolute; top:0; bottom:0; width:4px; background:#fff; box-shadow:0 0 8px 2px #fff; transform:translateX(-50%); left:50%; transition:left 0.04s linear;"></div>
@@ -881,15 +928,16 @@
                     <div id="bossMsg" style="font-size:0.8rem; height:50px; text-align:center; margin:15px 0;"></div>
                     
                     <div style="display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; margin-top:10px;">
-                        <div id="tapZone" style="width:110px; height:110px; background:radial-gradient(circle, #f0cc88, #e8a642); display:flex; align-items:center; justify-content:center; font-size:0.9rem; border:4px solid #8bae5a; cursor:pointer; margin:0 auto;">STRIKE</div>
-                        <button id="bossRestartBtn" style="padding:8px 16px; background:#fef7e0; color:#7b9e4a; border:3px solid #8bae5a; font-family:'Press Start 2P',monospace; font-size:0.55rem; cursor:pointer;">RESTART</button>
-                        <button id="bossExitBtn" style="padding:8px 16px; background:#fef7e0; color:#d9882c; border:3px solid #8bae5a; font-family:'Press Start 2P',monospace; font-size:0.55rem; cursor:pointer;">EXIT</button>
+                        <div id="tapZone" style="width:110px; height:110px; background:radial-gradient(circle, #f0cc88, #e8a642); display:flex; align-items:center; justify-content:center; font-size:0.9rem; border:4px solid #8bae5a; cursor:pointer; margin:0 auto; touch-action:manipulation;">STRIKE</div>
+                        <button id="bossRestartBtn" style="padding:8px 16px; background:#fef7e0; color:#7b9e4a; border:3px solid #8bae5a; font-family:'Press Start 2P',monospace; font-size:0.55rem; cursor:pointer; touch-action:manipulation;">RESTART</button>
+                        <button id="bossExitBtn" style="padding:8px 16px; background:#fef7e0; color:#d9882c; border:3px solid #8bae5a; font-family:'Press Start 2P',monospace; font-size:0.55rem; cursor:pointer; touch-action:manipulation;">EXIT</button>
                     </div>
                 </div>
             `;
             const container = document.querySelector('.game-container');
             container.innerHTML = bossHTML;
             initBossFight();
+            preventZoomOnBossContainer();
         }
         
         function initBossFight() {
@@ -926,7 +974,7 @@
             }
             
             function showNextButton() {
-                const buttonHTML = `<button id="nextPageBtn" style="padding:12px 24px; background:#a8d56f; border:3px solid #4a5d23; color:#2d4a22; font-family:'Press Start 2P',monospace; font-size:0.8rem; cursor:pointer; margin-top:20px;">NEXT →</button>`;
+                const buttonHTML = `<button id="nextPageBtn" style="padding:12px 24px; background:#a8d56f; border:3px solid #4a5d23; color:#2d4a22; font-family:'Press Start 2P',monospace; font-size:0.8rem; cursor:pointer; margin-top:20px; touch-action:manipulation;">NEXT →</button>`;
                 const container = document.getElementById('bossFightContainer');
                 if (container) {
                     container.insertAdjacentHTML('beforeend', buttonHTML);
