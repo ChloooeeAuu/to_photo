@@ -38,18 +38,6 @@
             z-index: -2;
         }
 
-        .energy-wave {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 30% 40%, rgba(200, 230, 150, 0.3) 0%, rgba(255, 245, 180, 0.2) 70%);
-            animation: energyPulse 6s ease-in-out infinite;
-            pointer-events: none;
-            z-index: -1;
-        }
-
         /* 像素掃描線 */
         .scan-line {
             position: fixed;
@@ -355,7 +343,6 @@
 </head>
 <body>
     <div class="cyber-bg"></div>
-    <div class="energy-wave"></div>
     <div class="scan-line"></div>
 
     <div class="back-button"><a href="index.html">← EXIT</a></div>
@@ -431,7 +418,6 @@
 
     <script>
         // ========== 防止畫面縮放（加強版） ==========
-        // 防止雙指/雙擊縮放
         document.addEventListener('touchmove', function(e) {
             if (e.touches.length > 1) {
                 e.preventDefault();
@@ -448,7 +434,7 @@
             }
         }, { passive: false });
         
-        // 防止雙擊縮放（iOS Safari）
+        // 防止雙擊縮放
         let lastTouchEnd = 0;
         document.addEventListener('touchend', function(e) {
             const now = Date.now();
@@ -457,17 +443,6 @@
             }
             lastTouchEnd = now;
         }, false);
-        
-        // 防止所有點擊事件的默認縮放行為
-        document.querySelectorAll('button, .btn, #tapZone, #bossRestartBtn, #bossExitBtn').forEach(el => {
-            if (el) {
-                el.addEventListener('touchstart', function(e) {
-                    e.preventDefault();
-                    // 手動觸發點擊
-                    this.click();
-                }, { passive: false });
-            }
-        });
         
         // ========== 遊戲設定 ==========
         const LEVEL_IMAGES = [
@@ -702,6 +677,8 @@
         }
         
         // ========== BOSS 戰鬥 ==========
+        let bossVictoryFlag = false;
+        
         function startBossFight() {
             showToast("⚔️ FIGHT WITH 遲兔 - INITIATING BATTLE... ⚔️");
             const elementsToHide = ['.status-bar', '.energy-container', '#gameMainArea', '#gateIntroCard'];
@@ -734,7 +711,7 @@
                     
                     <div id="bossMsg" style="font-size:0.8rem; height:50px; text-align:center; margin:15px 0;"></div>
                     
-                    <!-- 按鈕區域 - FIGHT 按鈕置中放大 -->
+                    <!-- 按鈕區域 -->
                     <div style="display:flex; flex-direction:column; align-items:center; gap:15px; width:100%; margin-top:15px;">
                         <div id="tapZone" style="width:160px; height:160px; background:radial-gradient(circle, #f0cc88, #e8a642); display:flex; align-items:center; justify-content:center; font-size:1.2rem; border:4px solid #8bae5a; cursor:pointer; margin:0 auto; touch-action:manipulation;">FIGHT</div>
                         <button id="bossRestartBtn" style="padding:10px 20px; background:#fef7e0; color:#7b9e4a; border:3px solid #8bae5a; font-family:'Press Start 2P',monospace; font-size:0.6rem; cursor:pointer; touch-action:manipulation;">RESTART</button>
@@ -772,7 +749,7 @@
             
             function formatTime(ms) { let totalSeconds = ms / 1000; let m = Math.floor(totalSeconds / 60); let s = Math.floor(totalSeconds % 60); let h = Math.floor((ms % 1000) / 10); return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}.${h.toString().padStart(2,'0')}`; }
             function updateClock() { if (!active) return; elapsedTime = Date.now() - startTime; timerDisplay.innerText = formatTime(elapsedTime); clockTimer = requestAnimationFrame(updateClock); }
-            function updateUI() { if(spark) spark.style.left = pos + "%"; if(compFill) compFill.style.width = pos + "%"; if(plyFill) plyFill.style.width = (100 - pos) + "%"; if(pos <= 0) endGame("WIN"); if(pos >= 100) endGame("LOSE"); }
+            function updateUI() { if(spark) spark.style.left = pos + "%"; if(compFill) compFill.style.width = pos + "%"; if(plyFill) plyFill.style.width = (100 - pos) + "%"; if(pos <= 0) { if(!bossVictoryFlag) endGame("WIN"); } if(pos >= 100) endGame("LOSE"); }
             
             function tapHandler(e) { 
                 e.preventDefault(); 
@@ -784,16 +761,39 @@
             }
             
             function cpuCycle() { if (!active) return; pos += cpuPower; if(pos > 100) pos = 100; updateUI(); cpuTimer = setTimeout(cpuCycle, cpuInterval); }
+            
             function endGame(res) { 
                 active = false; 
                 clearTimeout(cpuTimer); 
                 cancelAnimationFrame(clockTimer); 
-                if(res === "WIN") msgArea.innerHTML = `<span style="color:#6b9e2e">VICTORY!</span><div style="font-size:0.55rem;">Time: ${formatTime(elapsedTime)}</div>`; 
-                else msgArea.innerHTML = `<span style="color:#d97a2a">DEFEATED</span><div style="font-size:0.55rem;">Survived: ${formatTime(elapsedTime)}</div>`; 
+                if(res === "WIN") {
+                    bossVictoryFlag = true;
+                    msgArea.innerHTML = `<span style="color:#6b9e2e">VICTORY!</span><div style="font-size:0.55rem;">Time: ${formatTime(elapsedTime)}</div>`;
+                    // 顯示 NEXT 按鈕
+                    showNextButton();
+                } else {
+                    msgArea.innerHTML = `<span style="color:#d97a2a">DEFEATED</span><div style="font-size:0.55rem;">Survived: ${formatTime(elapsedTime)}</div>`;
+                }
             }
+            
+            function showNextButton() {
+                const buttonHTML = `<button id="nextPageBtn" style="padding:12px 24px; background:#a8d56f; border:3px solid #4a5d23; color:#2d4a22; font-family:'Press Start 2P',monospace; font-size:0.8rem; cursor:pointer; margin-top:20px; touch-action:manipulation;">NEXT →</button>`;
+                const container = document.getElementById('bossFightContainer');
+                if (container) {
+                    container.insertAdjacentHTML('beforeend', buttonHTML);
+                    const nextBtn = document.getElementById('nextPageBtn');
+                    if (nextBtn) {
+                        nextBtn.addEventListener('click', function() {
+                            window.location.href = 'tran.html';
+                        });
+                    }
+                }
+            }
+            
             function resetBattle() { 
                 pos = 50; 
                 active = true; 
+                bossVictoryFlag = false;
                 elapsedTime = 0; 
                 timerDisplay.innerText = "00:00.00"; 
                 msgArea.innerHTML = ""; 
@@ -805,12 +805,7 @@
             }
             function exitBattle() { window.location.href = 'gate.html'; }
             
-            // 移除舊的監聽器，添加新的
             if(tapZone) {
-                // 移除可能存在的舊監聽器
-                tapZone.removeEventListener('pointerdown', tapHandler);
-                tapZone.removeEventListener('touchstart', tapHandler);
-                // 添加新監聽器
                 tapZone.addEventListener('pointerdown', tapHandler);
                 tapZone.addEventListener('touchstart', tapHandler, { passive: false });
             }
